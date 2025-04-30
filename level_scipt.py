@@ -3,6 +3,8 @@ from discord.ext import commands, tasks
 import json
 import time
 import os
+
+# IMPORT DU KEEP_ALIVE pour garder le bot actif
 from web import keep_alive
 
 intents = discord.Intents.default()
@@ -76,10 +78,8 @@ def get_progress_bar(messages):
     bar_display = "[" + "█" * bars + "░" * (10 - bars) + f"] {int(percent * 100)}%"
     return bar_display
 
-# Nom du salon où les commandes sont autorisées
 AUTHORIZED_CHANNEL_NAME = "level"
 
-# Commande pour voir son niveau
 @bot.command()
 async def level(ctx):
     if ctx.channel.name != AUTHORIZED_CHANNEL_NAME:
@@ -92,7 +92,6 @@ async def level(ctx):
     progress_bar = get_progress_bar(xp_dict[user_id]["messages"])
     await ctx.send(f"{ctx.author.mention}, tu es niveau {total_level} !\nProgression : {progress_bar}")
 
-# Commande pour voir le classement
 @bot.command()
 async def rank(ctx):
     if ctx.channel.name != AUTHORIZED_CHANNEL_NAME:
@@ -132,7 +131,6 @@ async def rank(ctx):
 
     await ctx.send(embed=embed)
 
-# Gérer les messages envoyés
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -155,7 +153,6 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# Gérer le vocal toutes les 10 minutes
 @tasks.loop(minutes=10)
 async def voice_activity_check():
     for guild in bot.guilds:
@@ -176,11 +173,13 @@ async def voice_activity_check():
                         xp_dict[f"{user_id}_voice_time"] = current_time
                         save_xp_data()
 
-# Quand le bot est prêt
 @bot.event
 async def on_ready():
     print(f"{bot.user} est prêt !")
     voice_activity_check.start()
 
-# Récupérer le token à partir de la variable d'environnement
+# LANCER LE SERVEUR FLASK POUR RENDER (keep-alive)
+keep_alive()
+
+# LANCER LE BOT DISCORD
 bot.run(os.getenv("DISCORD_TOKEN"))
