@@ -182,5 +182,4 @@ async def on_ready():
     voice_activity_check.start()
 
 # Récupérer le token à partir de la variable d'environnement
-token = "MTM2NjIzMDY0ODMyNjQ1OTQ2NQ.G7Zazn.UI9ACxFssXpHxOtuyhIsnNueVIPT4pP9mjQedQ"
-bot.run(token)
+bot.run(os.getenv("DISCORD_TOKEN"))
