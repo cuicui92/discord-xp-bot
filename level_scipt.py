@@ -3,6 +3,7 @@ from discord.ext import commands, tasks
 import json
 import time
 import os
+from web import keep_alive
 
 intents = discord.Intents.default()
 intents.members = True
