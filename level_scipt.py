@@ -182,4 +182,4 @@ async def on_ready():
     voice_activity_check.start()
 
 # Lancer le bot
-bot.run("MTM2NjIzMDY0ODMyNjQ1OTQ2NQ.GiWQGE.bLw6hHKTsilVYTEqUEtXUPZ9Jz0GarLoZFMpOk")
+bot.run("MTM2NjIzMDY0ODMyNjQ1OTQ2NQ.G7Zazn.UI9ACxFssXpHxOtuyhIsnNueVIPT4pP9mjQedQ")
