@@ -181,5 +181,6 @@ async def on_ready():
     print(f"{bot.user} est prêt !")
     voice_activity_check.start()
 
-# Lancer le bot
-bot.run("MTM2NjIzMDY0ODMyNjQ1OTQ2NQ.GiWQGE.bLw6hHKTsilVYTEqUEtXUPZ9Jz0GarLoZFMpOk")
+# Récupérer le token à partir de la variable d'environnement
+token = "MTM2NjIzMDY0ODMyNjQ1OTQ2NQ.G7Zazn.UI9ACxFssXpHxOtuyhIsnNueVIPT4pP9mjQedQ"
+bot.run(token)
