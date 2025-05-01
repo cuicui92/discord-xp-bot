@@ -3,9 +3,17 @@ from discord.ext import commands, tasks
 import json
 import time
 import os
+import firebase_admin
+from firebase_admin import credentials, db
 
 # IMPORT DU KEEP_ALIVE pour garder le bot actif
 from web import keep_alive
+
+# Initialisation de Firebase
+cred = credentials.Certificate("firebase_config.json")  # Assure-toi que le fichier firebase_config.json est dans le même dossier que ton script
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://xp-bot-f4291-default-rtdb.firebaseio.com/'  # Ton URL Firebase
+})
 
 intents = discord.Intents.default()
 intents.members = True
@@ -16,21 +24,15 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Dictionnaire pour stocker l'XP des utilisateurs
 xp_dict = {}
 
-# Fichier pour enregistrer l'XP
-xp_file = "xp_data.json"
-if not os.path.exists(xp_file):
-    with open(xp_file, "w") as f:
-        json.dump({}, f)
-
-# Charger les données d'XP
+# Charger les données d'XP depuis Firebase
 def load_xp_data():
-    with open(xp_file, "r") as f:
-        return json.load(f)
+    ref = db.reference('xp_data')
+    return ref.get() or {}
 
-# Sauvegarder les données d'XP
+# Sauvegarder les données d'XP dans Firebase
 def save_xp_data():
-    with open(xp_file, "w") as f:
-        json.dump(xp_dict, f)
+    ref = db.reference('xp_data')
+    ref.set(xp_dict)
 
 # Calculer le niveau texte selon le nombre de messages
 def calculate_text_level(messages):
@@ -183,3 +185,4 @@ keep_alive()
 
 # LANCER LE BOT DISCORD
 bot.run(os.getenv("DISCORD_TOKEN"))
+
