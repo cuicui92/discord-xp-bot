@@ -21,17 +21,14 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Dictionnaire pour stocker l'XP des utilisateurs
-xp_dict = {}
-
-# Charger les données d'XP depuis Firebase
-def load_xp_data():
-    ref = db.reference('xp_data')
+# Charger les données d'XP depuis Firebase pour un serveur donné
+def load_xp_data(guild_id):
+    ref = db.reference(f'xp_data/{guild_id}')
     return ref.get() or {}
 
-# Sauvegarder les données d'XP dans Firebase
-def save_xp_data():
-    ref = db.reference('xp_data')
+# Sauvegarder les données d'XP pour un serveur donné dans Firebase
+def save_xp_data(guild_id, xp_dict):
+    ref = db.reference(f'xp_data/{guild_id}')
     ref.set(xp_dict)
 
 # Calculer le niveau texte selon le nombre de messages
@@ -50,7 +47,7 @@ def calculate_text_level(messages):
         return 100
 
 # Calculer le total (texte + vocal)
-def calculate_total_level(user_id):
+def calculate_total_level(user_id, guild_id, xp_dict):
     data = xp_dict.get(user_id, {})
     messages = data.get("messages", 0)
     vocal_levels = data.get("vocal_levels", 0)
@@ -84,25 +81,31 @@ AUTHORIZED_CHANNEL_NAME = "level"
 
 @bot.command()
 async def level(ctx):
+    guild_id = str(ctx.guild.id)  # Récupérer l'ID du serveur
+    xp_dict = load_xp_data(guild_id)
+
     if ctx.channel.name != AUTHORIZED_CHANNEL_NAME:
         return await ctx.send(f"{ctx.author.mention}, tu peux utiliser cette commande uniquement dans #{AUTHORIZED_CHANNEL_NAME} !")
 
     user_id = str(ctx.author.id)
     if user_id not in xp_dict:
         xp_dict[user_id] = {"messages": 0, "vocal_levels": 0}
-    total_level = calculate_total_level(user_id)
+    total_level = calculate_total_level(user_id, guild_id, xp_dict)
     progress_bar = get_progress_bar(xp_dict[user_id]["messages"])
     await ctx.send(f"{ctx.author.mention}, tu es niveau {total_level} !\nProgression : {progress_bar}")
 
 @bot.command()
 async def rank(ctx):
+    guild_id = str(ctx.guild.id)  # Récupérer l'ID du serveur
+    xp_dict = load_xp_data(guild_id)
+
     if ctx.channel.name != AUTHORIZED_CHANNEL_NAME:
         return await ctx.send(f"{ctx.author.mention}, tu peux utiliser cette commande uniquement dans #{AUTHORIZED_CHANNEL_NAME} !")
 
     leaderboard = []
 
     for user_id, data in xp_dict.items():
-        total_level = calculate_total_level(user_id)
+        total_level = calculate_total_level(user_id, guild_id, xp_dict)
         leaderboard.append((user_id, total_level))
 
     leaderboard.sort(key=lambda x: x[1], reverse=True)
@@ -124,7 +127,7 @@ async def rank(ctx):
             break
 
     if author_position and author_position > 10:
-        total_level = calculate_total_level(author_id)
+        total_level = calculate_total_level(author_id, guild_id, xp_dict)
         embed.add_field(
             name="🏅 Ta position",
             value=f"{author_position}ᵉ — {ctx.author.name} (Niveau {total_level})",
@@ -138,6 +141,9 @@ async def on_message(message):
     if message.author.bot:
         return
 
+    guild_id = str(message.guild.id)  # Récupérer l'ID du serveur
+    xp_dict = load_xp_data(guild_id)
+
     user_id = str(message.author.id)
     if "Verified" not in [role.name for role in message.author.roles]:
         return
@@ -145,10 +151,10 @@ async def on_message(message):
     if user_id not in xp_dict:
         xp_dict[user_id] = {"messages": 0, "vocal_levels": 0}
 
-    old_level = calculate_total_level(user_id)
+    old_level = calculate_total_level(user_id, guild_id, xp_dict)
     xp_dict[user_id]["messages"] += 1
-    save_xp_data()
-    new_level = calculate_total_level(user_id)
+    save_xp_data(guild_id, xp_dict)
+    new_level = calculate_total_level(user_id, guild_id, xp_dict)
 
     if new_level > old_level:
         await message.channel.send(f"🎉 {message.author.mention} vient de monter au niveau {new_level} ! GG à lui !")
@@ -164,6 +170,9 @@ async def voice_activity_check():
             if "Verified" in [role.name for role in member.roles]:
                 if member.voice and member.voice.channel:
                     user_id = str(member.id)
+                    guild_id = str(guild.id)  # Récupérer l'ID du serveur
+                    xp_dict = load_xp_data(guild_id)
+
                     if user_id not in xp_dict:
                         xp_dict[user_id] = {"messages": 0, "vocal_levels": 0}
 
@@ -173,7 +182,7 @@ async def voice_activity_check():
                     if current_time - last_time >= 7200:
                         xp_dict[user_id]["vocal_levels"] += 1
                         xp_dict[f"{user_id}_voice_time"] = current_time
-                        save_xp_data()
+                        save_xp_data(guild_id, xp_dict)
 
 @bot.event
 async def on_ready():
@@ -185,4 +194,5 @@ keep_alive()
 
 # LANCER LE BOT DISCORD
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
