@@ -1,1 +1,1 @@
-web: python level_scipt.py
+web: python web.py
