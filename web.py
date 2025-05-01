@@ -1,7 +1,5 @@
 from flask import Flask
 from threading import Thread
-import os
-from level_scipt import client  
 
 app = Flask('')
 
@@ -15,7 +13,3 @@ def run():
 def keep_alive():
     t = Thread(target=run)
     t.start()
-
-keep_alive()
-token = os.getenv("TOKEN")  
-client.run(token)
