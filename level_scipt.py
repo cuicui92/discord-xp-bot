@@ -66,8 +66,8 @@ def calculate_text_level(messages):
     else:
         return 100
 
-def calculate_total_level(user_id):
-    data = xp_dict.get(user_id, {})
+def calculate_total_level(server_id, user_id):
+    data = xp_dict.get(server_id, {}).get(user_id, {})
     messages = data.get("messages", 0)
     vocal_levels = data.get("vocal_levels", 0)
     return calculate_text_level(messages) + vocal_levels
@@ -96,12 +96,17 @@ async def mystats(ctx):
     if ctx.channel.name != AUTHORIZED_CHANNEL_NAME:
         return await ctx.send(f"{ctx.author.mention}, utilise cette commande dans #{AUTHORIZED_CHANNEL_NAME}.")
 
+    server_id = str(ctx.guild.id)
     user_id = str(ctx.author.id)
-    if user_id not in xp_dict:
-        xp_dict[user_id] = {"messages": 0, "vocal_levels": 0}
 
-    data = xp_dict[user_id]
-    total_level = calculate_total_level(user_id)
+    if server_id not in xp_dict:
+        xp_dict[server_id] = {}
+
+    if user_id not in xp_dict[server_id]:
+        xp_dict[server_id][user_id] = {"messages": 0, "vocal_levels": 0}
+
+    data = xp_dict[server_id][user_id]
+    total_level = calculate_total_level(server_id, user_id)
     progress_bar = get_progress_bar(data["messages"])
 
     embed = discord.Embed(title=f"Statistiques de {ctx.author.name}", color=discord.Color.green())
@@ -119,7 +124,12 @@ async def rank(ctx):
     if ctx.channel.name != AUTHORIZED_CHANNEL_NAME:
         return await ctx.send(f"{ctx.author.mention}, utilise cette commande dans #{AUTHORIZED_CHANNEL_NAME}.")
 
-    leaderboard = [(uid, calculate_total_level(uid)) for uid in xp_dict]
+    server_id = str(ctx.guild.id)
+
+    if server_id not in xp_dict:
+        xp_dict[server_id] = {}
+
+    leaderboard = [(user_id, calculate_total_level(server_id, user_id)) for user_id in xp_dict[server_id]]
     leaderboard.sort(key=lambda x: x[1], reverse=True)
 
     embed = discord.Embed(title="🏆 Classement des niveaux", color=discord.Color.gold())
@@ -140,17 +150,22 @@ async def on_message(message):
     if message.author.bot or "Verified" not in [role.name for role in message.author.roles]:
         return
 
+    server_id = str(message.guild.id)
     user_id = str(message.author.id)
-    if user_id not in xp_dict:
-        xp_dict[user_id] = {"messages": 0, "vocal_levels": 0}
 
-    old_level = calculate_total_level(user_id)
-    xp_dict[user_id]["messages"] += 1
+    if server_id not in xp_dict:
+        xp_dict[server_id] = {}
+
+    if user_id not in xp_dict[server_id]:
+        xp_dict[server_id][user_id] = {"messages": 0, "vocal_levels": 0}
+
+    old_level = calculate_total_level(server_id, user_id)
+    xp_dict[server_id][user_id]["messages"] += 1
     save_xp_data()
-    new_level = calculate_total_level(user_id)
+    new_level = calculate_total_level(server_id, user_id)
 
     if new_level > old_level:
-        msg = await message.channel.send(f"🎉 {message.author.mention} est passé niveau {new_level} !")
+        await message.channel.send(f"🎉 {message.author.mention} est passé niveau {new_level} !")
 
     await bot.process_commands(message)
 
@@ -159,9 +174,14 @@ async def on_voice_state_update(member, before, after):
     if member.bot or "Verified" not in [role.name for role in member.roles]:
         return
 
+    server_id = str(member.guild.id)
     user_id = str(member.id)
-    if user_id not in xp_dict:
-        xp_dict[user_id] = {"messages": 0, "vocal_levels": 0}
+
+    if server_id not in xp_dict:
+        xp_dict[server_id] = {}
+
+    if user_id not in xp_dict[server_id]:
+        xp_dict[server_id][user_id] = {"messages": 0, "vocal_levels": 0}
 
     now = time.time()
     if after.channel and not before.channel:
@@ -169,7 +189,7 @@ async def on_voice_state_update(member, before, after):
     elif not after.channel and before.channel and user_id in vocal_start_times:
         duration = now - vocal_start_times.pop(user_id)
         if duration >= 2 * 3600:
-            xp_dict[user_id]["vocal_levels"] += 1
+            xp_dict[server_id][user_id]["vocal_levels"] += 1
             save_xp_data()
             await member.guild.text_channels[0].send(f"🎧 {member.mention} a gagné un niveau vocal !")
 
