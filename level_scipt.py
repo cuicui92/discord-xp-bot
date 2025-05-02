@@ -253,6 +253,9 @@ async def on_voice_state_update(member, before, after):
     if new_vocal_level > old_vocal_level:
         await member.guild.text_channels[0].send(f"🎧 {member.mention} vient de monter de niveau vocal à {new_vocal_level} !")
 
-keep_alive()  # Assure que le bot reste actif
-bot.run("YOUR_BOT_TOKEN")
+# LANCER LE SERVEUR FLASK POUR RENDER (keep-alive)
+keep_alive()
+
+# LANCER LE BOT DISCORD
+bot.run(os.getenv("DISCORD_TOKEN"))
 
