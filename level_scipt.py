@@ -170,7 +170,7 @@ async def on_message(message):
     if new_level > old_level:
         level_channel = discord.utils.get(message.guild.text_channels, name=AUTHORIZED_CHANNEL_NAME)
         if level_channel:
-            await level_channel.send(f"🎉 {message.author.mention} est passé de niveau {old_level} à {new_level} !")
+            await level_channel.send(f"🎉 GG {message.author.mention} est passé au niveau {new_level} !")
 
     await bot.process_commands(message)
 
