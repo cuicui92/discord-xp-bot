@@ -151,7 +151,6 @@ async def on_message(message):
 
     if new_level > old_level:
         msg = await message.channel.send(f"🎉 {message.author.mention} est passé niveau {new_level} !")
-        await msg.delete(delay=10)
 
     await bot.process_commands(message)
 
