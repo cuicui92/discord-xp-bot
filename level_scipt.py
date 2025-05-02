@@ -23,10 +23,14 @@ intents.message_content = True
 intents.voice_states = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+tree = bot.tree
 
 xp_dict = {}
 vocal_start_times = {}
 save_queue = deque()
+
+AUTHORIZED_CHANNEL_NAME = "🪜・level"
+ADMIN_ROLE_NAME = "🦇 \"Bootman\""
 
 # File d'attente pour sauvegarde Firebase
 async def save_worker():
@@ -41,6 +45,7 @@ async def save_worker():
 async def on_ready():
     print(f"Connecté en tant que {bot.user.name}")
     bot.loop.create_task(save_worker())
+    await tree.sync()
 
 # Chargement données XP
 def load_xp_data():
@@ -88,8 +93,6 @@ def get_progress_bar(messages):
     bars = int(percent * 10)
     bar_display = "[" + "█" * bars + "░" * (10 - bars) + f"] {int(percent * 100)}%"
     return bar_display
-
-AUTHORIZED_CHANNEL_NAME = "🪜・level"
 
 @bot.command()
 async def mystats(ctx):
@@ -165,9 +168,32 @@ async def on_message(message):
     new_level = calculate_total_level(server_id, user_id)
 
     if new_level > old_level:
-        await message.channel.send(f"🎉 {message.author.mention} est passé niveau {new_level} !")
+        level_channel = discord.utils.get(message.guild.text_channels, name=AUTHORIZED_CHANNEL_NAME)
+        if level_channel:
+            await level_channel.send(f"🎉 {message.author.mention} est passé de niveau {old_level} à {new_level} !")
 
     await bot.process_commands(message)
+
+@tree.command(name="givelvl", description="Donne des niveaux à un membre (réservé à Bootman)")
+async def givelvl(interaction: discord.Interaction, membre: discord.Member, nombre: int):
+    role_names = [role.name for role in interaction.user.roles]
+    if ADMIN_ROLE_NAME not in role_names:
+        await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        return
+
+    server_id = str(interaction.guild.id)
+    user_id = str(membre.id)
+
+    if server_id not in xp_dict:
+        xp_dict[server_id] = {}
+
+    if user_id not in xp_dict[server_id]:
+        xp_dict[server_id][user_id] = {"messages": 0, "vocal_levels": 0}
+
+    xp_dict[server_id][user_id]["vocal_levels"] += nombre
+    save_xp_data()
+
+    await interaction.response.send_message(f"✅ {membre.mention} a reçu **{nombre}** niveaux vocaux !", ephemeral=False)
 
 @bot.event
 async def on_voice_state_update(member, before, after):
@@ -191,7 +217,9 @@ async def on_voice_state_update(member, before, after):
         if duration >= 2 * 3600:
             xp_dict[server_id][user_id]["vocal_levels"] += 1
             save_xp_data()
-            await member.guild.text_channels[0].send(f"🎧 {member.mention} a gagné un niveau vocal !")
+            level_channel = discord.utils.get(member.guild.text_channels, name=AUTHORIZED_CHANNEL_NAME)
+            if level_channel:
+                await level_channel.send(f"🎧 {member.mention} a gagné un niveau vocal !")
 
 # Démarrage
 xp_dict = load_xp_data()
