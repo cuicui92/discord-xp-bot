@@ -77,7 +77,7 @@ def get_progress_bar(messages):
 
     percent = current / total
     bars = int(percent * 10)
-    bar_display = "[" + "█" * bars + "░" * (10 - bars) + f"] {int(percent * 100)}%"
+    bar_display = f"🟩" * bars + f"⬜" * (10 - bars) + f" {int(percent * 100)}%"
     return bar_display
 
 AUTHORIZED_CHANNEL_NAME = "🪜・level"
@@ -114,6 +114,7 @@ async def rank(ctx):
         try:
             user = await bot.fetch_user(int(user_id))
             embed.add_field(name=f"{i}. {user.name}", value=f"Niveau {total_level}", inline=False)
+            embed.set_thumbnail(url=user.avatar_url)  # Ajout de l'avatar de l'utilisateur
         except:
             continue
 
@@ -145,7 +146,15 @@ async def mystats(ctx):
         xp_dict[user_id] = {"messages": 0, "vocal_levels": 0}
     total_level = calculate_total_level(user_id)
     progress_bar = get_progress_bar(xp_dict[user_id]["messages"])
-    await ctx.send(f"{ctx.author.mention}, voici tes statistiques :\nNiveau : {total_level}\nProgression : {progress_bar}")
+
+    embed = discord.Embed(title=f"📊 Statistiques de {ctx.author.name}", color=discord.Color.blue())
+    embed.add_field(name="Niveau total", value=total_level, inline=False)
+    embed.add_field(name="Messages envoyés", value=xp_dict[user_id]["messages"], inline=False)
+    embed.add_field(name="Niveau vocal", value=xp_dict[user_id]["vocal_levels"], inline=False)
+    embed.add_field(name="Progression", value=progress_bar, inline=False)
+    embed.set_thumbnail(url=ctx.author.avatar_url)  # Ajout de la photo de profil de l'utilisateur
+
+    await ctx.send(embed=embed)
     await ctx.message.delete()
 
 @bot.command()
@@ -167,6 +176,7 @@ async def topvocal(ctx):
         try:
             user = await bot.fetch_user(int(user_id))
             embed.add_field(name=f"{i}. {user.name}", value=f"Niveau vocal {vocal_level}", inline=False)
+            embed.set_thumbnail(url=user.avatar_url)  # Ajout de l'avatar de l'utilisateur
         except:
             continue
 
@@ -192,6 +202,7 @@ async def topmessages(ctx):
         try:
             user = await bot.fetch_user(int(user_id))
             embed.add_field(name=f"{i}. {user.name}", value=f"{messages_count} messages", inline=False)
+            embed.set_thumbnail(url=user.avatar_url)  # Ajout de l'avatar de l'utilisateur
         except:
             continue
 
@@ -212,41 +223,11 @@ async def on_message(message):
 
     old_level = calculate_total_level(user_id)
     xp_dict[user_id]["messages"] += 1
-    save_xp_data()
     new_level = calculate_total_level(user_id)
 
-    if new_level > old_level:
-        await message.channel.send(f"🎉 {message.author.mention} vient de monter au niveau {new_level} ! GG à lui !")
+    save_xp_data()
 
     await bot.process_commands(message)
-
-@tasks.loop(minutes=10)
-async def voice_activity_check():
-    for guild in bot.guilds:
-        for member in guild.members:
-            if member.bot:
-                continue
-            if "Verified" in [role.name for role in member.roles]:
-                if member.voice and member.voice.channel:
-                    user_id = str(member.id)
-                    if user_id not in xp_dict:
-                        xp_dict[user_id] = {"messages": 0, "vocal_levels": 0}
-
-                    last_time = xp_dict.get(f"{user_id}_voice_time", time.time())
-                    current_time = time.time()
-
-                    if current_time - last_time >= 7200:
-                        xp_dict[user_id]["vocal_levels"] += 1
-                        xp_dict[f"{user_id}_voice_time"] = current_time
-                        save_xp_data()
-
-@bot.event
-async def on_ready():
-    print(f"{bot.user} est prêt !")
-    voice_activity_check.start()
-
-# LANCER LE SERVEUR FLASK POUR RENDER (keep-alive)
+    
 keep_alive()
-
-# LANCER LE BOT DISCORD
-bot.run(os.getenv("DISCORD_TOKEN"))
+bot.run('YOUR_BOT_TOKEN')
