@@ -225,10 +225,11 @@ async def on_voice_state_update(member, before, after):
             save_xp_data()
             level_channel = discord.utils.get(member.guild.text_channels, name=AUTHORIZED_CHANNEL_NAME)
             if level_channel:
-                await level_channel.send(f"🎧 {member.mention} a gagné un niveau vocal !")
+                await level_channel.send(f"🎧 GG {member.mention} a gagné un niveau vocal !")
 
 # Démarrage
 xp_dict = load_xp_data()
 keep_alive()
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
