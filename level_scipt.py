@@ -30,7 +30,7 @@ vocal_start_times = {}
 save_queue = deque()
 
 AUTHORIZED_CHANNEL_NAME = "🪜・level"
-ADMIN_ROLE_NAME = "🦇 \"Bootman\""
+ADMIN_ROLE_NAME = '🦇 "Bootman"'
 
 # File d'attente pour sauvegarde Firebase
 async def save_worker():
@@ -132,15 +132,21 @@ async def rank(ctx):
     if server_id not in xp_dict:
         xp_dict[server_id] = {}
 
-    leaderboard = [(user_id, calculate_total_level(server_id, user_id)) for user_id in xp_dict[server_id]]
+    leaderboard = [(user_id, calculate_total_level(server_id, user_id), xp_dict[server_id][user_id].get("messages", 0))
+                   for user_id in xp_dict[server_id]]
     leaderboard.sort(key=lambda x: x[1], reverse=True)
 
     embed = discord.Embed(title="🏆 Classement des niveaux", color=discord.Color.gold())
 
-    for i, (user_id, level) in enumerate(leaderboard[:10], start=1):
+    for i, (user_id, level, messages) in enumerate(leaderboard[:10], start=1):
         try:
             user = await bot.fetch_user(int(user_id))
-            embed.add_field(name=f"{i}. {user.name}", value=f"**Niveau** : {level}", inline=False)
+            name = user.name.capitalize()
+            embed.add_field(
+                name=f"{i}. **{name}**",
+                value=f"Niveau : **{level}** — Messages : {messages}",
+                inline=False
+            )
         except:
             continue
 
@@ -225,3 +231,4 @@ async def on_voice_state_update(member, before, after):
 xp_dict = load_xp_data()
 keep_alive()
 bot.run(os.getenv("DISCORD_TOKEN"))
+
